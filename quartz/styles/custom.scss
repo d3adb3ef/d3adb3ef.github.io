@@ -1,3 +1,150 @@
 @use "./base.scss";
 
-// put your custom CSS here!
+// put your 
+
+/* Move search bar slightly to the left */
+.left.sidebar .flex-component {
+  margin-left: -8px !important;
+}
+
+/* Move reader icon closer to search bar */
+.left.sidebar .flex-component button {
+  transform: translateX(-6px);
+}
+
+/* Force larger profile picture */
+.left.sidebar .sidebar-profile img {
+  width: 160px !important;
+  max-width: none !important;
+  height: 160px !important;
+  border-radius: 50%;
+}
+
+/* Keep the profile centered */
+.left.sidebar .sidebar-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* UNIFORM DARK BACKGROUND (NO LAYERS) */
+body,
+#quartz-root,
+#quartz-body,
+.page,
+.left.sidebar,
+.center,
+.right.sidebar,
+.sidebar-profile,
+.flex-component,
+.explorer,
+.content,
+article {
+  background: #121212 !important;
+  color: #eaeaea !important;
+}
+
+/* Softer bluish-white text (matched to screenshot) */
+p, span, li {
+  color: #a9b8d4 !important;
+}
+
+/* Optional: apply globally for consistency */
+body {
+  color: #a9b8d4 !important;
+}
+
+/* Links */
+a {
+  color: #6cb6ff !important;
+}
+
+/* Code blocks (still slightly different for readability) */
+pre, code {
+  background: #121212 !important;
+  color: #eaeaea !important;
+}
+
+/* Remove gap between profile and search - TARGETED FIX */
+.left.sidebar {
+  row-gap: 0 !important;
+  gap: 0 !important;
+}
+
+.sidebar-profile + .flex-component,
+.sidebar-profile + *,
+.page-title + .flex-component {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Zero out all child spacing in left sidebar */
+.left.sidebar > * + * {
+  margin-top: 0 !important;
+}
+
+/* FIXED SEARCH BAR POSITION (moved a little more up) */
+.left.sidebar .flex-component[style] {
+  margin-top: -0.25rem !important;
+  transform: translateY(-0.25rem) !important;
+}
+
+/* MOVE EXPLORER DOWN */
+.flex-component + .explorer {
+  margin-top: 1.5rem !important;
+}
+
+/* MOVE PROFILE MORE LEFT */
+.sidebar-profile {
+  margin-left: -2rem !important;
+  margin-top: -0.5rem !important;
+  padding-left: 0 !important;
+}
+
+.sidebar-name {
+  margin-left: -1rem !important;
+}
+
+.sidebar-bio {
+  margin-left: -1rem !important;
+  padding-left: 0 !important;
+}
+
+/* ========================= */
+/* GREEN TERMINAL STYLE THEME */
+/* ========================= */
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  color: #16a34a !important;
+}
+
+/* Links (override previous blue) */
+a {
+  color: #16a34a !important;
+}
+
+/* Sidebar / explorer / TOC */
+.explorer a,
+.explorer span,
+.table-of-contents a {
+  color: #16a34a !important;
+}
+
+/* Page titles */
+.page-title,
+.article-title {
+  color: #16a34a !important;
+}
+
+/* Icons + UI elements */
+svg,
+button {
+  color: #16a34a !important;
+  fill: #16a34a !important;
+}
+
+/* Hover effect */
+a:hover {
+  color: #22c55e !important;
+}

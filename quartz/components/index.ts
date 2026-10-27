@@ -24,6 +24,8 @@ import Comments from "./Comments"
 import Flex from "./Flex"
 import ConditionalRender from "./ConditionalRender"
 
+export { default as ProfileCard } from "./ProfileCard"
+
 export {
   ArticleTitle,
   Content,
